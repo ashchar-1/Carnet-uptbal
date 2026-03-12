@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muro de Registros UPTBAL</title>
+    <style>
+        :root { --upt-blue: #003366; --upt-orange: #f39c12; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; }
+        
+        .header { max-width: 1000px; margin: 0 auto 30px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-create { background: var(--upt-blue); color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.3s; }
+        .btn-create:hover { background: var(--upt-orange); }
+        
+        /* Buscador */
+        .search-container { max-width: 1000px; margin: 0 auto 20px; display: flex; gap: 10px; }
+        #buscador { flex: 1; padding: 15px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        /* Muro / Grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+        .post-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 6px solid var(--upt-blue); display: flex; flex-direction: column; transition: 0.3s; }
+        .post-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+        
+        .card-body { padding: 15px; display: flex; align-items: center; gap: 15px; }
+        .student-img { width: 80px; height: 100px; object-fit: cover; border-radius: 6px; background: #eee; }
+        .student-details h3 { margin: 0; font-size: 15px; color: var(--upt-blue); text-transform: uppercase; font-weight: 700; }
+        .student-details p { margin: 4px 0; font-size: 13px; color: #555; }
+        
+        /* Acciones de la Tarjeta */
+        .card-actions { background: #f9f9f9; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #eee; }
+        .btn { flex: 1; border: none; padding: 8px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; transition: 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        
+        .btn-del { background: #e74c3c; }
+        .btn-edit { background: #3498db; }
+        .btn-link { background: var(--upt-orange); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 style="color: var(--upt-blue); margin: 0; font-weight: 700;">Muro de Estudiantes</h1>
+        <a href="index.html" class="btn-create" onclick="localStorage.removeItem('editing_item')">+ Nuevo Carnet</a>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="buscador" placeholder="🔍 Buscar por Cédula o Nombre..." oninput="render()">
+    </div>
+
+    <div id="container-registros" class="grid">
+        </div>
+
+<script>
+    // Renderiza los registros ordenados y filtrados
+    function render() {
+        const container = document.getElementById('container-registros');
+        const query = document.getElementById('buscador').value.toLowerCase();
+        let db = JSON.parse(localStorage.getItem("uptbal_db")) || [];
+
+        // 1. Ordenar Alfabéticamente por Nombre
+        db.sort((a, b) => a.name.localeCompare(b.name));
+
+        // 2. Filtrar por Buscador (Nombre o Cédula)
+        const filtrados = db.filter(item => 
+            item.name.toLowerCase().includes(query) || 
+            item.id.toLowerCase().includes(query)
+        );
+
+        container.innerHTML = "";
+        if(filtrados.length === 0) {
+            container.innerHTML = "<p style='grid-column: 1/-1; text-align: center; color: #888;'>No se encontraron resultados.</p>";
+            return;
+        }
+
+        filtrados.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            card.innerHTML = `
+                <div class="card-body">
+                    <img src="${item.photo}" class="student-img">
+                    <div class="student-details">
+                        <h3>${item.name}</h3>
+                        <p><b>C.I:</b> ${item.id}</p>
+                        <p><b>Carrera:</b> ${item.major}</p>
+                        <p style="font-size: 11px; color: #999;">Publicado: ${item.date}</p>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-link" onclick="copyShare('${item.id}')">LINK</button>
+                    <button class="btn btn-edit" onclick="editRecord('${item.id}')">EDITAR</button>
+                    <button class="btn btn-del" onclick="deleteRecord('${item.id}')">BORRAR</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Borrar registro individual
+    function deleteRecord(id) {
+        if(confirm("¿Seguro que deseas eliminar este registro permanentemente?")) {
+            let db = JSON.parse(localStorage.getItem("uptbal_db")) || [];
+            db = db.filter(item => item.id !== id);
+            localStorage.setItem("uptbal_db", JSON.stringify(db));
+            render();
+        }
+    }
+
+    // Enviar datos al generador para editar
+    function editRecord(id) {
+        let db = JSON.parse(localStorage.getItem("uptbal_db")) || [];
+        const record = db.find(item => item.id === id);
+        localStorage.setItem("editing_item", JSON.stringify(record));
+        window.location.href = "index.html"; // Redirigir
+    }
+
+    // Copiar link de verificación único
+    function copyShare(id) {
+        // En un servidor real, usarías la URL base de tu web.
+        const baseURL = window.location.href.split('?')[0]; // Limpia la URL actual
+        const link = baseURL + "?buscar=" + encodeURIComponent(id);
+        navigator.clipboard.writeText(link);
+        alert("¡Enlace de verificación copiado al portapapeles!\n\nAl abrir este link, el muro mostrará solo el carnet verificado.");
+    }
+
+    // Lógica para detectar escaneo QR y auto-filtrar
+    window.onload = () => {
+        // Primero cargamos todos
+        render();
+
+        // Detectamos si la URL trae un parámetro de búsqueda (?buscar=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoFiltro = urlParams.get('buscar');
+
+        if(autoFiltro) {
+            // Ponemos la cédula en el buscador automáticamente
+            document.getElementById('buscador').value = autoFiltro;
+            // Filtramos la vista
+            render();
+            alert("✅ Estudiante verificado correctamente en el muro de registros.");
+        }
+    };
+</script>
+</body>
+</html>

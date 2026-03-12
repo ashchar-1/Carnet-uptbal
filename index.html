@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Carnet UPTBAL</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --upt-blue: #003366; /* Azul UPTBAL */
+            --upt-orange: #f39c12; /* Naranja UPTBAL */
+            --bg: #f4f7f9;
+            --text-main: #333;
+            --text-light: #fff;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        /* Navegación */
+        .nav-bar { width: 100%; max-width: 900px; display: flex; justify-content: flex-end; margin-bottom: 25px; }
+        .btn-nav { background: var(--upt-blue); color: var(--text-light); padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn-nav:hover { background: var(--upt-orange); }
+
+        .container { display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; max-width: 1000px; }
+        
+        /* Formulario */
+        .form-section { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); width: 350px; }
+        .form-section h2 { color: var(--upt-blue); margin-top: 0; border-bottom: 3px solid var(--upt-orange); padding-bottom: 12px; font-weight: 700; }
+        input, select { width: 100%; padding: 12px; margin: 12px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        /* 💎 DISEÑO DE CARNET IMPACTANTE (DIV PRINCIPAL) 💎 */
+        #carnet-area { padding: 10px; } /* Espacio para html2canvas */
+        #carnet { 
+            width: 350px; 
+            height: 540px; 
+            background: #fff; 
+            border-radius: 20px; 
+            position: relative; 
+            overflow: hidden; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15); 
+            border: 1px solid #ddd; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Cabecera Moderna */
+        .header { 
+            background: linear-gradient(135deg, var(--upt-blue), #004d99); 
+            color: var(--text-light); 
+            height: 110px; 
+            padding: 15px; 
+            display: flex; 
+            align-items: center; 
+            border-bottom: 5px solid var(--upt-orange); 
+            box-sizing: border-box;
+        }
+        .logo-box { 
+            width: 70px; 
+            height: 70px; 
+            background: white; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-right: 15px; 
+            overflow: hidden; 
+            border: 3px solid var(--upt-orange); 
+            flex-shrink: 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .logo-box img { width: 85%; height: auto; }
+        .header-text h2 { margin: 0; font-size: 11px; font-weight: 900; line-height: 1.3; text-transform: uppercase; }
+        .header-text p { margin: 3px 0 0; font-size: 9px; font-weight: 300; opacity: 0.9; }
+
+        /* Área de Foto con Efecto */
+        .photo-area { 
+            width: 170px; 
+            height: 200px; 
+            background: #e9ecef; 
+            margin: 30px auto 10px; 
+            border: 4px solid var(--upt-blue); 
+            border-radius: 12px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            position: relative;
+        }
+        #img-preview { width: 100%; height: 100%; object-fit: cover; }
+        .photo-area::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
+        }
+        
+        /* Info Estudiantil Clara y Moderna */
+        .info { text-align: center; padding: 0 20px; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+        .info h1 { font-size: 19px; color: var(--upt-blue); margin: 0 0 5px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
+        .info p.ci { font-size: 16px; color: #555; margin: 0 0 10px; font-weight: 600; }
+        .major-badge { 
+            display: inline-block; 
+            background: var(--upt-orange); 
+            color: var(--text-light); 
+            padding: 7px 18px; 
+            border-radius: 25px; 
+            font-size: 12px; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            letter-spacing: 0.3px;
+        }
+        
+        /* Pie de página Limpio con QR */
+        .footer { 
+            height: 120px; 
+            background: #f8f9fa; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 10px 25px; 
+            border-top: 1px solid #eee; 
+            box-sizing: border-box;
+        }
+        #qrcode { 
+            background: white; 
+            padding: 6px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .serial-text { text-align: right; font-size: 10px; color: #777; font-weight: 500; }
+        #view-serial { font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold; color: #333; margin-top: 3px; display: block; }
+
+        /* Botones de Acción Modernos */
+        .btn-action { 
+            width: 100%; 
+            padding: 15px; 
+            margin-top: 15px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            color: var(--text-light); 
+            font-size: 15px; 
+            transition: 0.3s; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-publish { background: #27ae60; }
+        .btn-publish:hover { background: #219150; }
+        .btn-download { background: var(--upt-blue); margin-top: 25px; }
+        .btn-download:hover { background: #002244; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-bar">
+        <a href="registros.html" class="btn-nav">Ver Todos los Registros 📋</a>
+    </div>
+
+    <div class="container">
+        <div class="form-section">
+            <h2 id="form-title">Generar Nuevo Carnet</h2>
+            <input type="text" id="in-name" placeholder="Nombres y Apellidos" oninput="update()">
+            <input type="text" id="in-id" placeholder="Cédula (V-20.123.456)" oninput="update()">
+            <select id="in-major" onchange="update()">
+                <option value="Turismo">Turismo</option>
+                <option value="Informática">Informática</option>
+                <option value="Administración">Administración</option>
+                <option value="Agropecuaria">Agropecuaria</option>
+                <option value="Construcción Civil">Construcción Civil</option>
+            </select>
+            <label style="font-size: 12px; font-weight: bold; margin-bottom: 5px; display: block;">Foto Estudiante:</label>
+            <input type="file" accept="image/*" onchange="loadPhoto(event)">
+            
+            <button class="btn-action btn-publish" id="btn-save" onclick="saveData()">PUBLICAR CARNET</button>
+        </div>
+
+        <div class="carnet-view">
+            <div id="carnet-area"> <div id="carnet">
+                    <div class="header">
+                        <div class="logo-box">
+                            <img src="logo.jpg" alt="Logo UPTBAL">
+                        </div>
+                        <div class="header-text">
+                            <h2>UNIVERSIDAD POLITÉCNICA TERRITORIAL DE BARLOVENTO</h2>
+                            <h2>"ARGELIA LAYA"</h2>
+                            <p>República Bolivariana de Venezuela</p>
+                        </div>
+                    </div>
+                    
+                    <div class="photo-area">
+                        <img id="img-preview" src="https://via.placeholder.com/170x200?text=FOTO">
+                    </div>
+                    
+                    <div class="info">
+                        <h1 id="view-name">NOMBRE APELLIDO</h1>
+                        <p class="ci">C.I. <span id="view-id">00.000.000</span></p>
+                        <div>
+                            <span class="major-badge" id="view-major">TURISMO</span>
+                        </div>
+                    </div>
+                    
+                    <div class="footer">
+                        <div id="qrcode"></div>
+                        <div class="serial-text">
+                            <span>SERIAL VERIFICACIÓN</span>
+                            <b id="view-serial">AL-000000</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-action btn-download" onclick="downloadPNG()">💾 DESCARGAR COMO PNG</button>
+        </div>
+    </div>
+
+<script>
+    let photoData = "";
+    let isEditing = false;
+    let editTargetId = null;
+    const qrcode = new QRCode(document.getElementById("qrcode"), { width: 80, height: 80 });
+
+    // Actualiza la vista previa del carnet al escribir
+    function update() {
+        const nameVal = document.getElementById('in-name').value || "NOMBRE APELLIDO";
+        const idVal = document.getElementById('in-id').value || "00.000.000";
+        const majorVal = document.getElementById('in-major').value;
+
+        document.getElementById('view-name').innerText = nameVal;
+        document.getElementById('view-id').innerText = idVal;
+        document.getElementById('view-major').innerText = majorVal;
+
+        // 🔗 LINK DINÁMICO QR: Apunta a registros.html filtrando por cédula
+        // El QR debe contener una URL real para cuando se suba a internet
+        const currentURL = window.location.href;
+        const targetURL = currentURL.replace('index.html', 'registros.html') + "?buscar=" + encodeURIComponent(idVal);
+        qrcode.makeCode(targetURL);
+    }
+
+    // Carga la foto seleccionada
+    function loadPhoto(e) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            photoData = event.target.result;
+            document.getElementById('img-preview').src = photoData;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    }
+
+    // Guarda los datos en LocalStorage para el muro
+    function saveData() {
+        const id = document.getElementById('in-id').value;
+        const name = document.getElementById('in-name').value;
+        if(!id || !name) return alert("Por favor completa los campos principales.");
+
+        let db = JSON.parse(localStorage.getItem("uptbal_db")) || [];
+
+        if(isEditing) {
+            // Eliminar versión antigua para reemplazarla
+            db = db.filter(item => item.id !== editTargetId);
+            localStorage.removeItem("editing_item");
+        }
+
+        const nuevoRegistro = {
+            id: id,
+            name: name,
+            major: document.getElementById('in-major').value,
+            photo: photoData || document.getElementById('img-preview').src, // Si no se subió foto, usa placeholder
+            serial: document.getElementById('view-serial').innerText,
+            date: new Date().toLocaleDateString()
+        };
+
+        db.push(nuevoRegistro);
+        localStorage.setItem("uptbal_db", JSON.stringify(db));
+        window.location.href = "registros.html"; // Ir al muro
+    }
+
+    // 💾 FUNCIÓN DE DESCARGA PNG RECUPERADA 💾
+    function downloadPNG() {
+        const carnetArea = document.getElementById('carnet-area');
+        const cedula = document.getElementById('view-id').innerText;
+        
+        // Usamos html2canvas para capturar el div como imagen
+        html2canvas(carnetArea, { scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `carnet_UPTBAL_${cedula}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+    }
+
+    // Carga datos si venimos de "Editar" en el muro
+    window.onload = () => {
+        const editingData = JSON.parse(localStorage.getItem("editing_item"));
+        if(editingData) {
+            isEditing = true;
+            editTargetId = editingData.id;
+            document.getElementById('in-name').value = editingData.name;
+            document.getElementById('in-id').value = editingData.id;
+            document.getElementById('in-major').value = editingData.major;
+            document.getElementById('img-preview').src = editingData.photo;
+            document.getElementById('view-serial').innerText = editingData.serial;
+            document.getElementById('btn-save').innerText = "ACTUALIZAR CAMBIOS";
+            document.getElementById('form-title').innerText = "Editando Registro";
+            update(); // Actualiza QR y textos
+        } else {
+            // Genera serial aleatorio si es nuevo
+            document.getElementById('view-serial').innerText = "AL-" + Math.floor(Math.random()*900000 + 100000);
+            update(); // Muestra placeholder inicial
+        }
+    };
+</script>
+</body>
+</html>
